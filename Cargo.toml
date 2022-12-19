@@ -1,0 +1,17 @@
+[package]
+name = "custom-printer"
+version = "0.1.0"
+description = "Rust library for Custom thermal receipt printers"
+authors = ["Philip Ye <yestyle@gmail.com>"]
+edition = "2021"
+license = "MIT"
+categories = ["embedded", "hardware-support"]
+keywords = ["printer", "custom", "thermal printer", "receipt printer"]
+repository = "https://github.com/yestyle/custom-printer-lib"
+homepage = "https://github.com/yestyle/custom-printer-lib"
+documentation = "https://github.com/yestyle/custom-printer-lib"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
