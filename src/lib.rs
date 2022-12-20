@@ -6,7 +6,15 @@ use std::{
 };
 
 // List of supported commands
+// Printing commands
+const PRINT: &[u8] = &[0x0A];
+const PRINT_FEED_INCHES: &[u8] = &[0x1B, 0x4A];
+const PRINT_FEED_LINES: &[u8] = &[0x1B, 0x64];
+const SPEED_QUALITY: &[u8] = &[0x1B, 0x78];
+const DENSITY: &[u8] = &[0x1D, 0x7C];
+// Bit-image commands
 const BIT_IMAGE: &[u8] = &[0x1B, 0x2A];
+// Mechanism control commands
 const TOTAL_CUT: &[u8] = &[0x1B, 0x69];
 const PARTIAL_CUT: &[u8] = &[0x1B, 0x6D];
 
@@ -30,13 +38,45 @@ pub enum CutType {
     PartialCut,
 }
 
+/// Feed units supported by [`CustomPrinter::print_and_feed_paper()`] function.
+pub enum FeedUnit {
+    /// Feed the paper by number of vertical or horizontal motion unit inches
+    Inches,
+    /// Feed the paper by number of lines
+    Lines,
+}
+
+/// Speeds supported by [`CustomPrinter::speed()`] function.
+pub enum Speed {
+    /// High speed (draft mode)
+    High,
+    /// Normal mode
+    Normal,
+    /// Low speed (high quality)
+    Low,
+}
+
+/// Densities supported by [`CustomPrinter::density()`] function.
+pub enum Density {
+    /// -50%
+    Minus50,
+    /// -25%
+    Minus25,
+    /// 0%
+    Zero,
+    /// 25%
+    Plus25,
+    /// 50%
+    Plus50,
+}
+
 /// The main struct to construct printing commands and accomplish actual printing.
 ///
 /// The APIs are designed to be able to concatenate one after the other.
 /// # Examples
 ///
 /// ```no_run
-/// # use custom_printer::{BitImageMode, CustomPrinter, CutType};
+/// # use custom_printer::{BitImageMode, CustomPrinter, CutType, FeedUnit};
 /// let mut printer = CustomPrinter::new("/dev/usb/lp0").unwrap();
 /// printer
 ///     .bit_image(
@@ -44,6 +84,7 @@ pub enum CutType {
 ///         BitImageMode::Dots24DoubleDensity
 ///     )
 ///     .unwrap()
+///     .print()
 ///     .cut_paper(CutType::PartialCut)
 ///     .run()
 ///     .unwrap()
@@ -52,6 +93,7 @@ pub enum CutType {
 ///         BitImageMode::Dots24DoubleDensity
 ///     )
 ///     .unwrap()
+///     .print_and_feed_paper(FeedUnit::Lines, 10)
 ///     .cut_paper(CutType::TotalCut)
 ///     .run()
 ///     .unwrap();
@@ -200,6 +242,56 @@ impl CustomPrinter {
                 self.cmd.extend_from_slice(PARTIAL_CUT);
             }
         }
+
+        self
+    }
+
+    /// Append a command for printing and line feeding.
+    ///
+    /// Either [`print()`](CustomPrinter::print()) or [`print_and_feed_paper()`](CustomPrinter::print_and_feed_paper()) should be appended
+    /// before calling [`run()`](CustomPrinter::run()) to do actual printing.
+    pub fn print(&mut self) -> &mut Self {
+        self.cmd.extend_from_slice(PRINT);
+
+        self
+    }
+
+    /// Append a command for printing and feeding the paper by `amount` of `unit`.
+    ///
+    /// Either [`print()`](CustomPrinter::print()) or [`print_and_feed_paper()`](CustomPrinter::print_and_feed_paper()) should be appended
+    /// before calling [`run()`](CustomPrinter::run()) to do actual printing.
+    pub fn print_and_feed_paper(&mut self, unit: FeedUnit, amount: u8) -> &mut Self {
+        self.cmd.extend_from_slice(match unit {
+            FeedUnit::Inches => PRINT_FEED_INCHES,
+            FeedUnit::Lines => PRINT_FEED_LINES,
+        });
+        self.cmd.extend_from_slice(&[amount]);
+
+        self
+    }
+
+    /// Append a command for selecting speed / quality mode.
+    pub fn speed(&mut self, speed: &Speed) -> &mut Self {
+        self.cmd.extend_from_slice(SPEED_QUALITY);
+        self.cmd.extend_from_slice(&[match speed {
+            Speed::High => 0,
+            Speed::Normal => 1,
+            Speed::Low => 2,
+        }]);
+
+        self
+    }
+
+    /// Append a command for setting printing density.
+    pub fn density(&mut self, density: &Density) -> &mut Self {
+        self.cmd.extend_from_slice(DENSITY);
+        self.cmd.extend_from_slice(&[match density {
+            Density::Minus50 => 0,
+            Density::Minus25 => 1,
+            Density::Zero => 2,
+            Density::Plus25 => 3,
+            Density::Plus50 => 4,
+        }]);
 
         self
     }

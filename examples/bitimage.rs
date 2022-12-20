@@ -1,4 +1,4 @@
-use custom_printer::{BitImageMode, CustomPrinter, CutType};
+use custom_printer::{BitImageMode, CustomPrinter, CutType, FeedUnit};
 
 fn main() {
     // Replace /dev/null with actual device node when the printer is connected
@@ -10,6 +10,7 @@ fn main() {
             BitImageMode::Dots24DoubleDensity,
         )
         .unwrap()
+        .print_and_feed_paper(FeedUnit::Lines, 10)
         .cut_paper(CutType::TotalCut)
         .run()
         .unwrap();
